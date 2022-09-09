@@ -13,12 +13,15 @@ struct thread_data{
 	socklen_t client_len;
 	int size;
 	char buffer[1024];
-	char input[1024];	
+	char input[1024];
+	char shit[5];
 };
 
 void* threadfunction(void *arg){
+	int retval;
 	struct thread_data *my_data;
-	my_data = (struct thread_data *) arg; 
+	my_data = (struct thread_data *) arg;
+	printf("%s\n", my_data->shit);  // debug
 	for(;;){
 		printf("Waiting for client data\n");
 		int r = recvfrom(
@@ -32,7 +35,12 @@ void* threadfunction(void *arg){
 		if(r == -1)
 		{
 			perror("failed");
-			exit(1);
+			pthread_exit(&retval);
+		}
+		if(strncmp(my_data->input, "exit", 4) == 0){
+			printf("Exiting\n");
+			pthread_exit(&retval);
+			printf("omg\n");
 		}
 		printf("%s\n", my_data->input); 
 	}
@@ -55,11 +63,15 @@ int main()
 	struct sockaddr clientaddr;
 	socklen_t client_len;
 	const int size = 1024;
-	char buffer[size];
-	char input[size];
+	//char buffer[size];
+	//char input[size];
 
 	pthread_t thread1;
+	pthread_t thread2;
 	struct thread_data s1;
+	strncpy(s1.shit, "aaa", 3);
+	struct thread_data s2;
+	strncpy(s2.shit, "bbb", 3);
 
 	/* configure the server to use the localhost, port 8080, TCP */
 	memset( &hints, 0, sizeof(struct addrinfo) );	/* use memset_s() */
@@ -98,6 +110,9 @@ int main()
 		exit(1);
 	}
 
+	// hacky thread management
+	int thr_num = 0;
+
 	/* accept a new connection */
 	client_len = sizeof(clientaddr);
 	for (;;) {
@@ -107,15 +122,24 @@ int main()
 			perror("failed");
 			exit(1);
 		}
-	
-		s1.clientfd = clientfd;
-		//s1.server = server;
-		s1.clientaddr = clientaddr;
-		s1.client_len = client_len;
-		s1.size = 1024;
-		char input[1024]; 
-
-		pthread_create(&thread1, NULL, threadfunction, &s1);
+		if (thr_num == 0) {
+			s1.clientfd = clientfd;
+			//s1.server = server;
+			s1.clientaddr = clientaddr;
+			s1.client_len = client_len;
+			s1.size = 1024;
+			thr_num++;
+			pthread_create(&thread1, NULL, threadfunction, &s1);
+		}
+		if (thr_num == 1) {
+			s2.clientfd = clientfd;
+			//s2.server = server;
+			s2.clientaddr = clientaddr;
+			s2.client_len = client_len;
+			s2.size = 1024;
+			pthread_create(&thread2, NULL, threadfunction, &s2);
+		}
+		//char input[1024]; 
 	}
 
 	pthread_join(thread1, NULL);

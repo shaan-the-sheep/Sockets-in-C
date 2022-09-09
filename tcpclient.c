@@ -42,9 +42,9 @@ int main()
 
 	for(;;){
 		printf("Type a string: ");
-		fgets(input,buffer_size,stdin);
+		fgets(input, buffer_size, stdin);
 
-	/* send the string to the server */
+		/* send the string to the server */
 		r = sendto(
 			sockfd,
 			input,
@@ -54,6 +54,8 @@ int main()
 			host->ai_addrlen
 			);
 		printf("Send to: %d\n", r);
+		if(strncmp(input, "exit", 4) == 0)
+			exit(0);
 	}
 
 	/* upon connection, the host should send our IP address */
