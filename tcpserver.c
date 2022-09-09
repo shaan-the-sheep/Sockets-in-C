@@ -7,28 +7,45 @@
 #include <pthread.h>
 
 struct thread_data{
-	int socfd;
-	struct addrinfo *server;
+	int clientfd;
+	//struct addrinfo *server;
 	struct sockaddr clientaddr;
 	socklen_t client_len;
 	int size;
 	char buffer[1024];
+	char input[1024];	
 };
 
 void* threadfunction(void *arg){
 	struct thread_data *my_data;
-	my_data = (struct thread_data *) arg;
-	getnameinfo(&(my_data->clientaddr),  // this sets up buffer
+	my_data = (struct thread_data *) arg; 
+	for(;;){
+		printf("Waiting for client data\n");
+		int r = recvfrom(
+			my_data->clientfd,
+			my_data->input,
+			my_data->size,
+			0,
+			&(my_data->clientaddr),
+			&(my_data->client_len)
+		);		
+		if(r == -1)
+		{
+			perror("failed");
+			exit(1);
+		}
+		printf("%s\n", my_data->input); 
+	}
+	/* getnameinfo(&(my_data->clientaddr),  // this sets up buffer
 				my_data->client_len,
 				my_data->buffer,
 				my_data->size, 0, 0, NI_NUMERICHOST);
 
-	send(my_data->socfd, my_data->buffer, strlen(my_data->buffer),0); /* send the address */
-	close(my_data->socfd); /* clean-up and close */
-	freeaddrinfo(my_data->server);
-	close(my_data->socfd);
-	//pthread_join(thread1, NULL);
+	send(my_data->socfd, my_data->buffer, strlen(my_data->buffer),0);  send the address 
+	close(my_data->socfd);  clean-up and close */
+	//close(my_data->socfd);
 	return(0);
+	
 }
 
 int main()
@@ -39,6 +56,7 @@ int main()
 	socklen_t client_len;
 	const int size = 1024;
 	char buffer[size];
+	char input[size];
 
 	pthread_t thread1;
 	struct thread_data s1;
@@ -82,20 +100,24 @@ int main()
 
 	/* accept a new connection */
 	client_len = sizeof(clientaddr);
-	clientfd = accept(sockfd,&clientaddr,&client_len);
-	if( clientfd==-1 )
-	{
-		perror("failed");
-		exit(1);
+	for (;;) {
+		clientfd = accept(sockfd, &clientaddr, &client_len);
+		if( clientfd==-1 )
+		{
+			perror("failed");
+			exit(1);
+		}
+	
+		s1.clientfd = clientfd;
+		//s1.server = server;
+		s1.clientaddr = clientaddr;
+		s1.client_len = client_len;
+		s1.size = 1024;
+		char input[1024]; 
+
+		pthread_create(&thread1, NULL, threadfunction, &s1);
 	}
 
-	s1.socfd = clientfd;
-	s1.server = server;
-	s1.clientaddr = clientaddr;
-	s1.client_len = client_len;
-	s1.size = 1024;
-
-	pthread_create(&thread1, NULL, threadfunction, &s1);
 	pthread_join(thread1, NULL);
 	return 0;
 }

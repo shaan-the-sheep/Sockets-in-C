@@ -12,6 +12,7 @@ int main()
 	struct addrinfo hints,*host;
 	const int buffer_size = 1024;
 	char buffer[buffer_size];
+	char input[buffer_size];
 
 	memset(&hints, 0, sizeof(struct addrinfo));		/* memset_s() */
 	hints.ai_family = AF_INET;			/* IPv4 connection */
@@ -37,6 +38,22 @@ int main()
 	{
 		perror("TCP client");
 		exit(1);
+	}
+
+	for(;;){
+		printf("Type a string: ");
+		fgets(input,buffer_size,stdin);
+
+	/* send the string to the server */
+		r = sendto(
+			sockfd,
+			input,
+			strlen(input),
+			0,
+			host->ai_addr,
+			host->ai_addrlen
+			);
+		printf("Send to: %d\n", r);
 	}
 
 	/* upon connection, the host should send our IP address */
