@@ -15,6 +15,7 @@ struct socket_data {  // Used to be thead_data
 	socklen_t client_len;
 	int size;
 	char input[MAX_TXT_SZ];
+	int next_free_thr_index;
 };
 
 
@@ -56,8 +57,9 @@ void* threadfunction(void *arg){
 	int retval;
 	struct socket_data *my_data;
 	my_data = (struct socket_data *) arg;
-	for(;;){
+	for(;;){ 
 		printf("Waiting for client data\n");
+		//recvfrom is a blocking function; thread stops here until recvfrom returns
 		int r = recvfrom(my_data->clientfd,
 						my_data->input,
 						my_data->size,
@@ -66,11 +68,14 @@ void* threadfunction(void *arg){
 						&(my_data->client_len));		
 		if(r == -1)
 		{
+			printf("Here");
 			perror("failed");
+			close(my_data->clientfd);
 			pthread_exit(&retval);
 		}
 		if(strncmp(my_data->input, "exit", 4) == 0){
 			printf("Exiting\n");
+			close(my_data->clientfd);
 			pthread_exit(&retval);
 			printf("omg\n");
 		}
